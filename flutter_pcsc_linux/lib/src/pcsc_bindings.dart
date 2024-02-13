@@ -186,19 +186,22 @@ class PCSCBinding {
    * This computeFunction allows to run a blocking C function in an Isolate
    */
   static Future<Uint8List> _computeFunctionTransmit(Map map) async {
-    PCSCBinding binding = PCSCBinding();
+    /*PCSCBinding binding = PCSCBinding();
     return binding.transmit(
         map['h_card'], map['active_protocol'], map['command'],
-        newIsolate: false);
+        newIsolate: false);*/
+      return Uint8List(0);
   }
 
   /*
    * This computeFunction allows to run a blocking C function in an Isolate
    */
   static Future<Map> _computeFunctionCardGetStatusChange(Map map) async {
-    PCSCBinding binding = PCSCBinding();
+    /*PCSCBinding binding = PCSCBinding();
     return binding.cardGetStatusChange(map['context'], map['reader_name'],
-        currentState: map['current_state'], timeout: map['timeout']);
+        currentState: map['current_state'], timeout: map['timeout']);*/
+        Map a;
+        return a;
   }
 
   Future<Uint8List> _transmitInNewIsolate(
