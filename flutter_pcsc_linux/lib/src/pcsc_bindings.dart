@@ -150,36 +150,57 @@ class PCSCBinding {
     _checkAndThrow(res, 'Error while releasing context');
   }
 
-  Future<Map> waitForCardPresent(
-      int context, String readerName, int timeout) async {
-    Map map = await cardGetStatusChange(context, readerName, timeout: timeout);
+  Future<Map> waitForCardPresent(int context, String readerName) async {
+    Map map = await cardGetStatusChange(context, readerName);
     int currentState = map['pcsc_tag']['event_state'];
 
     if (currentState & PcscConstants.SCARD_STATE_EMPTY != 0) {
-      return await compute(_computeFunctionCardGetStatusChange, {
-        'context': context,
-        'reader_name': readerName,
-        'current_state': currentState,
-        'timeout': timeout
-      });
+      return await cardWaitForChange(context, readerName, currentState);
     } else {
       return map;
     }
   }
 
-  Future<void> waitForCardRemoved(
-      int context, String readerName, int timeout) async {
-    Map map = await cardGetStatusChange(context, readerName, timeout: timeout);
+  Future<Map> waitForCardRemoved(int context, String readerName) async {
+    Map map = await cardGetStatusChange(context, readerName);
     int currentState = map['pcsc_tag']['event_state'];
 
     if (currentState & PcscConstants.SCARD_STATE_PRESENT != 0) {
-      await compute(_computeFunctionCardGetStatusChange, {
-        'context': context,
-        'reader_name': readerName,
-        'current_state': currentState,
-        'timeout': timeout
-      });
+      return await cardWaitForChange(context, readerName, currentState);
+    } else {
+      return map;
     }
+  }
+
+  // Helper for waiting recursively - Potential Improvement
+  Future<Map> cardWaitForChange(int context, String readerName, int currentState,
+      {int timeout = PcscConstants.SCARD_INFINITE, int maxRetries = 3}) async {
+    int retries = 0;
+
+    while (retries < maxRetries) { 
+      try {
+        return await cardGetStatusChange(context, readerName,
+            currentState: currentState, timeout: timeout);
+
+      } on TimeoutException {
+        retries++;
+        if (retries < maxRetries) {
+          print('Timeout occurred. Retrying...');
+          await Future.delayed(Duration(seconds: 2)); // Customizable delay
+        } else {
+          // Maximum retries exceeded. Signal an error condition.
+          throw Exception('Max retries reached waiting for card state change'); 
+        } 
+
+      } catch (error) {
+        // Other errors - Rethrow to be caught up the call stack
+        rethrow; 
+      }
+    }
+
+    // Unreachable in theory if an exception isn't generated above:
+    throw Exception(
+        'Card state change failed after timeout - unexpected situation.'); 
   }
 
   /*
